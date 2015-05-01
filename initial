@@ -31,6 +31,14 @@ rm(i)
 rm(m)
 rm(codesum)
 
+weather$date<-as.Date(weather$date)
+weather$day<-weekdays(weather$date)
+weather$month<-as.numeric(format(weather$date,"%m"))
+weather$year<-as.numeric(format(weather$date,"%y"))
+weather$weeknum<-as.numeric(format(weather$date,"%U"))
+
+
+
 weather[ weather == "M" ] = NA
 weather[ weather == "-" ] = NA
 weather[ weather == " " ] = NA
@@ -53,11 +61,6 @@ for (i in 1:ncol(null_df))
 
 
 
-weather$date<-as.Date(weather$day)
-weather$day<-weekdays(weather$date)
-weather$month<-as.numeric(format(weather$date,"%m"))
-weather$year<-as.numeric(format(weather$date,"%y"))
-weather$weeknum<-as.numeric(format(weather$date,"%U"))
 
 
 library(plyr)
