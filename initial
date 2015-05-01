@@ -1,0 +1,103 @@
+train<-read.csv("train.csv",stringsAsFactors=F)
+weather<-read.csv("weather.csv",stringsAsFactors=F)
+
+str(weather)
+key<-read.csv("key.csv",stringsAsFactors=F)
+str(key)
+
+list<-strsplit(weather$codesum," ")
+codesum<-as.data.frame(unique(unlist(list, use.names = FALSE)))
+colnames(codesum)<-c('code')
+codesum<-subset(codesum,code != "")
+codesum<- data.frame(lapply(codesum, as.character), stringsAsFactors=FALSE)
+
+for (i in 1:nrow(codesum))
+{
+  weather[,codesum[i,1]]<-NA
+}
+
+rm(i)
+
+for (m in (ncol(weather)-nrow(codesum)+1):ncol(weather))
+{
+  for(i in 1:nrow(weather))
+  {
+    weather[i,m]<-ifelse((grepl(names(weather[m]),weather$codesum[i],fixed=T)),'1','0')
+  }
+}
+
+rm(list)
+rm(i)
+rm(m)
+rm(codesum)
+
+weather[ weather == "M" ] = NA
+weather[ weather == "-" ] = NA
+weather[ weather == " " ] = NA
+
+null_df<-weather
+for (i in 1:ncol(null_df))
+  {
+     null_df[,i]<-NA
+       
+  }
+
+null_df<-na.omit(null_df)
+
+for (i in 1:ncol(null_df))
+{
+  null_df[1,i]<-nrow(weather)
+  null_df[2,i]<-sum(is.na(weather[,i]))
+  null_df[3,i]<-round((null_df[2,i]/null_df[1,i])*100,2)
+}
+
+
+
+weather$date<-as.Date(weather$day)
+weather$day<-weekdays(weather$date)
+weather$month<-as.numeric(format(weather$date,"%m"))
+weather$year<-as.numeric(format(weather$date,"%y"))
+weather$weeknum<-as.numeric(format(weather$date,"%U"))
+
+
+library(plyr)
+weather_key<- join(weather, key, by = "station_nbr")
+
+train$store_nbr_date<-paste(train$store_nbr,"_",train$date,sep="")
+
+weather_key$store_nbr_date<-paste(weather_key$store_nbr,"_",weather_key$date,sep="")
+
+str(weather_key)
+str(train)
+
+train_final<- join(weather_key, train, by = "store_nbr_date")
+
+str(train_final)
+
+train_final$id<-paste(train_final$store_nbr,"_",train_final$item_nbr,"_",train_final$date,sep="")
+
+train_final$station_nbr<-NULL
+train_final$date<-NULL
+train_final$store_nbr<-NULL
+train_final$store_nbr_date<-NULL
+train_final$item_nbr<-NULL
+train_final$store_nbr<-NULL
+
+str(train_final)
+
+train_final$d1<-as.Date(train_final$date)
+train_final$day<-weekdays(train_final$d1)
+train_final$month<-as.numeric(format(train_final$d1,"%m"))
+train_final$year<-as.numeric(format(train_final$d1,"%y"))
+train_final$weeknum<-as.numeric(format(train_final$d1,"%U"))
+
+train_final$date<-NULL
+
+
+rm(key)
+rm(train)
+rm(weather)
+rm(weather_key)
+
+
+train_final$tmax<-as.numeric(train_final$tmax)
