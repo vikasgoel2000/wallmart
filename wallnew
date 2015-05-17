@@ -1,0 +1,65 @@
+train<-read.csv("train.csv",stringsAsFactors=F)
+
+train$date<-as.Date(train$date)
+
+
+test<-read.csv("test.csv",stringsAsFactors=F)
+
+test$date<-as.Date(test$date)
+
+length.test.store.nbr<-length(unique(test$store_nbr))
+length.train.store.nbr<-length(unique(train$store_nbr))
+
+#As test store number are less than train so 
+
+train<-subset(train,train$store_nbr!=1)
+
+length.test.store.nbr<-length(unique(test$store_nbr))
+length.train.store.nbr<-length(unique(train$store_nbr))
+
+
+length.test.date<-length(unique(test$date))
+length.train.date<-length(unique(train$date))
+
+length.test.item.nbr<-length(unique(test$item_nbr))
+length.train.item.nbr<-length(unique(train$item_nbr))
+
+############################################################
+train.data.frame<-data.frame(date=unique(train$date))
+str(train.data.frame)
+
+test.data.frame<-data.frame(date=unique(test$date))
+str(test.data.frame)
+
+
+############################################################
+require(reshape)
+require(forecast)
+require(plyr)
+
+for (i in 1:length.train.store.nbr)
+{
+  i<-i+1
+  train1<-subset(train,train$store_nbr==i)
+  train1$store_nbr<-NULL
+  train1<-cast(train1,date~item_nbr)
+  train11<-join(train.data.frame,train1)
+  train11[is.na(train11)] <- 0
+
+  for(m in 2:length.train.item.nbr)
+  {
+   
+    ts<-ts(train11[,m],frequency=365)
+    fc.arima <- auto.arima(ts,seasonal=T)
+    fc.tslm<-tslm(ts ~ trend + season)
+    pred.arima<-forecast(fc.arima,h=length.test.date)
+    pred.arima<-as.numeric(pred.arima$mean)
+    pred.tslm<-forecast(fc.tslm,h=length.test.date)
+    pred.tslm<-as.numeric(pred.tslm$mean)
+    pred<-(pred.arima+pred.tslm)/2
+    test.data.frame$root<-NA
+    colnames(test.data.frame)[ncol(test.data.frame)]<-paste("pred","_",i,"_",m,sep="")
+    test.data.frame[,ncol(test.data.frame)]<-pred
+  }
+  
+}
